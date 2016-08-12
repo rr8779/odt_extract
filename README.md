@@ -1,6 +1,12 @@
 # odt_extract
 
-Permet d'extraire le texte brut et la signature électronique d'un fichier odt (opendocument text file)
+Permet d'extraire le texte brut et la signature électronique d'un fichier odt (open document text)
+
+Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
+
+Peut nécessiter la lib argparse qui n'est en standard qu'à partir de python 2.7
+
+Références :
 
 Spec. odf : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01.html
 

@@ -3,12 +3,12 @@
 
 # Script permettant d'extraire le texte brut et la signature électronique d'un fichier odt (opendocument text file)
 
+# Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
+
 # Spec. odf : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01.html
 # Spec. odt : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01-part1.html#__RefHeading__1415004_253892949
 # Signature : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01-part3.html#Digital_Signature_File
 # Spec. signature xml : https://www.w3.org/TR/2008/REC-xmldsig-core-20080610/
-
-# Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
 
 # argparse n'est en standard qu'à partir de python 2.7
 import argparse
@@ -34,6 +34,7 @@ class ODTFile:
         self._CONTENT_FILE = 'content.xml'
         self._DSIG_FILE = 'META-INF/documentsignatures.xml'
 
+        self.contentxml = None
         self.xmltree = None
         self.dsigtree = None
 
@@ -52,7 +53,9 @@ class ODTFile:
         try: fichier_zip.close()
         except: pass
 
-        if (mimedata == self._MIMETYPE) and xmldata: self.xmltree = ElementTree.fromstring(xmldata)
+        if (mimedata == self._MIMETYPE) and xmldata:
+            self.xmltree = ElementTree.fromstring(xmldata)
+            self.contentxml = xmldata
         if dsigdata: self.dsigtree = ElementTree.fromstring(dsigdata)
 
     def get_odf_version(self):
@@ -72,11 +75,23 @@ class ODTFile:
     def get_dsig_algo(self):
         # Algorithme utilisée pour la signature électronique
         dsig_algo = ''
-        # Voir les specifications OASIS correspondantes
+        # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
         ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
-
+        signedinfo_element = ds_element.find('{%s}SignedInfo' % self._ODF_NS['ds'])
+        signature_method_element = signedinfo_element.find('{%s}SignatureMethod' % self._ODF_NS['ds'])
+        dsig_algo = signature_method_element.get('Algorithm')
         return dsig_algo
+
+    def get_dsig_value(self):
+        # Valeur de la signature électronique base64
+        dsig_value = ''
+        # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
+        # On ne prend en compte que le premier element <ds:Signature> trouvé
+        ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
+        signaturevalue_element = ds_element.find('{%s}SignatureValue' % self._ODF_NS['ds'])
+        dsig_value = signaturevalue_element.text
+        return dsig_value
 
     def __repr__(self):
         # Permet d'afficher les elements de l'arbre xml
@@ -97,6 +112,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Permet d\'extraire le texte brut et la signature électronique d\'un fichier odt (opendocument text file)')
     parser.add_argument('--file', required=True, help='Fichier à traiter')
     parser.add_argument('--text', action='store_true', help='Affichage du contenu texte brut')
+    parser.add_argument('--content', action='store_true', help='Affichage du contenu xml')
     parser.add_argument('--dsig', action='store_true', help='Affichage des données de la signature électronique')
     parser.add_argument('--verbose', action='store_true', help='Affichage des étapes successives')
     args = parser.parse_args()
@@ -117,6 +133,6 @@ if __name__ == '__main__':
         else:
             if args.verbose: print 'Algorithme de la signature électronique %s' % odtfile.get_dsig_algo()
             if args.dsig:
-                pass
+                print odtfile.get_dsig_value()
 
     exit(code_retour)

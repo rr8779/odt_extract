@@ -72,6 +72,10 @@ class ODTFile:
             if p_element.text is not None: raw_text += '%s\n' % p_element.text
         return raw_text
 
+    def get_content(self):
+        # Contenu xml
+        return self.contentxml
+
     def get_dsig_algo(self):
         # Algorithme utilisée pour la signature électronique
         dsig_algo = ''
@@ -93,6 +97,12 @@ class ODTFile:
         dsig_value = signaturevalue_element.text
         return dsig_value
 
+    def get_dsig_digest(self):
+        # Valeur du hash du contenu
+        dsig_digest = ''
+        
+        return dsig_digest
+
     def __repr__(self):
         # Permet d'afficher les elements de l'arbre xml
         repr = ''
@@ -111,28 +121,32 @@ if __name__ == '__main__':
     # Analyse des arguments de la ligne de commande
     parser = argparse.ArgumentParser(description='Permet d\'extraire le texte brut et la signature électronique d\'un fichier odt (opendocument text file)')
     parser.add_argument('--file', required=True, help='Fichier à traiter')
-    parser.add_argument('--text', action='store_true', help='Affichage du contenu texte brut')
+    parser.add_argument('--text', action='store_true', help='Affichage du texte brut du contenu')
     parser.add_argument('--content', action='store_true', help='Affichage du contenu xml')
-    parser.add_argument('--dsig', action='store_true', help='Affichage des données de la signature électronique')
+    parser.add_argument('--digest', action='store_true', help='Affichage du hash du contenu')
+    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature')
+    parser.add_argument('--issuer', action='store_true', help='Affichage de l\'emetteur du certificat')
+    parser.add_argument('--x509', action='store_true', help='Affichage de la clé publique')
+    parser.add_argument('--date', action='store_true', help='Affichage de la date de signature du contenu')
     parser.add_argument('--verbose', action='store_true', help='Affichage des étapes successives')
     args = parser.parse_args()
 
     # args contient les arguments de la ligne de commande
     if args.verbose: print 'Lecture du fichier %s' % args.file
     odtfile = ODTFile(args.file)
-    #print odtfile
-    if not odtfile.xmltree:
+    if odtfile.xmltree is None:
         print 'Erreur de lecture du contenu xml'
         code_retour = 1
     else:
         if args.verbose: print 'Contenu xml au format ODF version %s' % odtfile.get_odf_version()
         if args.text: print odtfile.get_raw_text()
-        if not odtfile.dsigtree:
+        if args.content: print odtfile.get_content()
+        if odtfile.dsigtree is None:
             print 'Erreur de lecture de la signature électronique'
             code_retour = 1
         else:
             if args.verbose: print 'Algorithme de la signature électronique %s' % odtfile.get_dsig_algo()
-            if args.dsig:
-                print odtfile.get_dsig_value()
+            if args.digest: print odtfile.get_dsig_digest()
+            if args.dsig: print odtfile.get_dsig_value()
 
     exit(code_retour)

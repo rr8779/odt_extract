@@ -87,8 +87,24 @@ class ODTFile:
         dsig_algo = signature_method_element.get('Algorithm')
         return dsig_algo
 
+    def get_dsig_digest(self):
+        # Empreinte (condensat) du contenu
+        dsig_digest = ''
+        # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
+        # On ne prend en compte que le premier element <ds:Signature> trouvé
+        ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
+        signedinfo_element = ds_element.find('{%s}SignedInfo' % self._ODF_NS['ds'])
+        references_element = signedinfo_element.findall('{%s}Reference' % self._ODF_NS['ds'])
+        for reference_element in references_element:
+            if reference_element.get('URI') == self._CONTENT_FILE:
+                digest_value_element = reference_element.find('{%s}DigestValue' % self._ODF_NS['ds'])
+                dsig_digest = digest_value_element.text
+                break
+        return dsig_digest
+
     def get_dsig_value(self):
-        # Valeur de la signature électronique base64
+        # Signature (empreinte du contenu signé avec la clé privée du certificat)
+        # La signature est en base64
         dsig_value = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
@@ -97,11 +113,20 @@ class ODTFile:
         dsig_value = signaturevalue_element.text
         return dsig_value
 
-    def get_dsig_digest(self):
-        # Valeur du hash du contenu
-        dsig_digest = ''
-        
-        return dsig_digest
+    def get_dsig_issuer(self):
+        # Emetteur du certificat de signature
+        dsig_issuer = ''
+        return dsig_issuer
+
+    def get_dsig_x509(self):
+        # Clé publique du certificat
+        dsig_x509 = ''
+        return dsig_x509
+
+    def get_dsig_date(self):
+        # Date de la signature
+        dsig_date = ''
+        return dsig_date
 
     def __repr__(self):
         # Permet d'afficher les elements de l'arbre xml
@@ -123,10 +148,10 @@ if __name__ == '__main__':
     parser.add_argument('--file', required=True, help='Fichier à traiter')
     parser.add_argument('--text', action='store_true', help='Affichage du texte brut du contenu')
     parser.add_argument('--content', action='store_true', help='Affichage du contenu xml')
-    parser.add_argument('--digest', action='store_true', help='Affichage du hash du contenu')
-    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature')
+    parser.add_argument('--digest', action='store_true', help='Affichage de l\'empreinte (condensat) du contenu')
+    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature (empreinte signée)')
     parser.add_argument('--issuer', action='store_true', help='Affichage de l\'emetteur du certificat')
-    parser.add_argument('--x509', action='store_true', help='Affichage de la clé publique')
+    parser.add_argument('--x509', action='store_true', help='Affichage de la clé publique du certificat')
     parser.add_argument('--date', action='store_true', help='Affichage de la date de signature du contenu')
     parser.add_argument('--verbose', action='store_true', help='Affichage des étapes successives')
     args = parser.parse_args()
@@ -148,5 +173,8 @@ if __name__ == '__main__':
             if args.verbose: print 'Algorithme de la signature électronique %s' % odtfile.get_dsig_algo()
             if args.digest: print odtfile.get_dsig_digest()
             if args.dsig: print odtfile.get_dsig_value()
+            if args.issuer: print odtfile.get_dsig_issuer()
+            if args.x509: print odtfile.get_dsig_x509()
+            if args.date: print odtfile.get_dsig_date()
 
     exit(code_retour)

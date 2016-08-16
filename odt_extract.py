@@ -9,12 +9,15 @@
 # Spec. odt : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01-part1.html#__RefHeading__1415004_253892949
 # Signature : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01-part3.html#Digital_Signature_File
 # Spec. signature xml : https://www.w3.org/TR/2008/REC-xmldsig-core-20080610/
+# Spec. canonical xml : https://www.w3.org/TR/xml-c14n
 
 # argparse n'est en standard qu'à partir de python 2.7
 import argparse
 
 from zipfile import ZipFile
-from xml.etree import ElementTree
+#from xml.etree import ElementTree
+import lxml.etree as ElementTree
+from StringIO import StringIO
 from sys import exit
 
 # Represente un fichier au format OASIS "ODF" Open Document Format
@@ -34,9 +37,8 @@ class ODTFile:
         self._CONTENT_FILE = 'content.xml'
         self._DSIG_FILE = 'META-INF/documentsignatures.xml'
 
-        self.contentxml = None
-        self.xmltree = None
-        self.dsigtree = None
+        self.xmlroot = None
+        self.dsigroot = None
 
         mimedata = None
         xmldata = None
@@ -54,34 +56,36 @@ class ODTFile:
         except: pass
 
         if (mimedata == self._MIMETYPE) and xmldata:
-            self.xmltree = ElementTree.fromstring(xmldata)
-            self.contentxml = xmldata
-        if dsigdata: self.dsigtree = ElementTree.fromstring(dsigdata)
+            self.xmlroot = ElementTree.fromstring(xmldata)
+        if dsigdata: self.dsigroot = ElementTree.fromstring(dsigdata)
 
     def get_odf_version(self):
         # Version ODF
-        return self.xmltree.get('{%s}version' % self._ODF_NS['office'])
+        return self.xmlroot.get('{%s}version' % self._ODF_NS['office'])
 
     def get_raw_text(self):
         # Contenu texte brut
         raw_text = ''
         # Voir les specifications OASIS correspondantes
-        body_element = self.xmltree.find('{%s}body' % self._ODF_NS['office'])
+        body_element = self.xmlroot.find('{%s}body' % self._ODF_NS['office'])
         text_element = body_element.find('{%s}text' % self._ODF_NS['office'])
         for p_element in text_element.findall('{%s}p' % self._ODF_NS['text']):
             if p_element.text is not None: raw_text += '%s\n' % p_element.text
         return raw_text
 
     def get_content(self):
-        # Contenu xml
-        return self.contentxml
+        # Contenu xml au format canonical xml (xml-c14n)
+        temp_ET = ElementTree.ElementTree(self.xmlroot)
+        temp_file_object = StringIO()
+        temp_ET.write_c14n(temp_file_object)
+        return temp_file_object.getvalue()
 
     def get_dsig_algo(self):
         # Algorithme utilisée pour la signature électronique
         dsig_algo = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
-        ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
+        ds_element = self.dsigroot.find('{%s}Signature' % self._ODF_NS['ds'])
         signedinfo_element = ds_element.find('{%s}SignedInfo' % self._ODF_NS['ds'])
         signature_method_element = signedinfo_element.find('{%s}SignatureMethod' % self._ODF_NS['ds'])
         dsig_algo = signature_method_element.get('Algorithm')
@@ -92,10 +96,10 @@ class ODTFile:
         dsig_digest = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
-        ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
+        ds_element = self.dsigroot.find('{%s}Signature' % self._ODF_NS['ds'])
         signedinfo_element = ds_element.find('{%s}SignedInfo' % self._ODF_NS['ds'])
-        references_element = signedinfo_element.findall('{%s}Reference' % self._ODF_NS['ds'])
-        for reference_element in references_element:
+        reference_elements = signedinfo_element.findall('{%s}Reference' % self._ODF_NS['ds'])
+        for reference_element in reference_elements:
             if reference_element.get('URI') == self._CONTENT_FILE:
                 digest_value_element = reference_element.find('{%s}DigestValue' % self._ODF_NS['ds'])
                 dsig_digest = digest_value_element.text
@@ -104,11 +108,11 @@ class ODTFile:
 
     def get_dsig_value(self):
         # Signature (empreinte du contenu signé avec la clé privée du certificat)
-        # La signature est en base64
+        # Le résultat est en base64
         dsig_value = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
-        ds_element = self.dsigtree.find('{%s}Signature' % self._ODF_NS['ds'])
+        ds_element = self.dsigroot.find('{%s}Signature' % self._ODF_NS['ds'])
         signaturevalue_element = ds_element.find('{%s}SignatureValue' % self._ODF_NS['ds'])
         dsig_value = signaturevalue_element.text
         return dsig_value
@@ -119,8 +123,16 @@ class ODTFile:
         return dsig_issuer
 
     def get_dsig_x509(self):
-        # Clé publique du certificat
+        # Le certificat de signature utilisé
+        # Le résultat est en base64
         dsig_x509 = ''
+        # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
+        # On ne prend en compte que le premier element <ds:Signature> trouvé
+        ds_element = self.dsigroot.find('{%s}Signature' % self._ODF_NS['ds'])
+        keyinfo_element = ds_element.find('{%s}KeyInfo' % self._ODF_NS['ds'])
+        x509data_element = keyinfo_element.find('{%s}X509Data' % self._ODF_NS['ds'])
+        x509cert_element = x509data_element.find('{%s}X509Certificate' % self._ODF_NS['ds'])
+        dsig_x509 = x509cert_element.text
         return dsig_x509
 
     def get_dsig_date(self):
@@ -131,9 +143,9 @@ class ODTFile:
     def __repr__(self):
         # Permet d'afficher les elements de l'arbre xml
         repr = ''
-        if self.xmltree:
+        if self.xmlroot:
             # xml.etree.ElementTree.Element.itertext() n'est pas dispo avant python 2.7
-            for element in self.xmltree.getiterator():
+            for element in self.xmlroot.getiterator():
                 repr += 'Tag: %s\n' % element.tag
                 repr += 'Attrib: %s\n' % element.attrib
                 repr += 'Text: %s\n' % element.text
@@ -147,11 +159,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Permet d\'extraire le texte brut et la signature électronique d\'un fichier odt (opendocument text file)')
     parser.add_argument('--file', required=True, help='Fichier à traiter')
     parser.add_argument('--text', action='store_true', help='Affichage du texte brut du contenu')
-    parser.add_argument('--content', action='store_true', help='Affichage du contenu xml')
+    parser.add_argument('--content', action='store_true', help='Affichage du contenu xml au format canonical xml (xml-c14n)')
     parser.add_argument('--digest', action='store_true', help='Affichage de l\'empreinte (condensat) du contenu')
-    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature (empreinte signée)')
+    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature (empreinte signée) au format base64')
     parser.add_argument('--issuer', action='store_true', help='Affichage de l\'emetteur du certificat')
-    parser.add_argument('--x509', action='store_true', help='Affichage de la clé publique du certificat')
+    parser.add_argument('--x509', action='store_true', help='Affichage du certificat de signature utilisé au format base64')
     parser.add_argument('--date', action='store_true', help='Affichage de la date de signature du contenu')
     parser.add_argument('--verbose', action='store_true', help='Affichage des étapes successives')
     args = parser.parse_args()
@@ -159,14 +171,14 @@ if __name__ == '__main__':
     # args contient les arguments de la ligne de commande
     if args.verbose: print 'Lecture du fichier %s' % args.file
     odtfile = ODTFile(args.file)
-    if odtfile.xmltree is None:
+    if odtfile.xmlroot is None:
         print 'Erreur de lecture du contenu xml'
         code_retour = 1
     else:
         if args.verbose: print 'Contenu xml au format ODF version %s' % odtfile.get_odf_version()
         if args.text: print odtfile.get_raw_text()
         if args.content: print odtfile.get_content()
-        if odtfile.dsigtree is None:
+        if odtfile.dsigroot is None:
             print 'Erreur de lecture de la signature électronique'
             code_retour = 1
         else:

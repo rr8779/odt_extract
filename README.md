@@ -1,6 +1,6 @@
 # odt_extract
 
-Permet d'extraire le texte brut et la signature électronique d'un fichier odt (open document text)
+Permet d'extraire les données utiles à la vérification de la signature électronique d'un fichier odt (open document text) : contenu texte brut, contenu xml au format "canonical xml", empreinte signée du contenu, certificat de signature utilisé.
 
 Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
 - Nécessite la lib lxml, sous RHEL 6.3 faire "yum install python-lxml"

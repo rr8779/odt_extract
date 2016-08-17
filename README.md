@@ -16,6 +16,18 @@ _Affichage du certificat de signature :_
 
 `./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout`
 
+_Calcul de l'empreinte du contenu :_
+
+`./odt_extract.py --file test_signed.odt --content | openssl dgst -binary -sha1 | base64`
+
+_Calcul de l'empreinte du bloc signé "SignedInfo" :_
+
+`TODO`
+
+_Calcul de la signature de l'empreinte du bloc signé "SignedInfo" :_
+
+`TODO`
+
 TODO :
 - parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis
 - Vérifier l'attribut `<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>`

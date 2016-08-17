@@ -6,11 +6,11 @@ Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
 - Nécessite la lib lxml, sous RHEL 6.3 faire "yum install python-lxml"
 - Nécessite la lib argparse qui n'est en standard qu'à partir de python 2.7 : https://pypi.python.org/pypi/argparse
 
-Quelques exemples d'utilisations sur un fichier "test_signed.odt" :
+__Quelques exemples d'utilisations sur un fichier "test_signed.odt" :__
 
-Affichage du certificat de signature :
+_Affichage du certificat de signature :_
 
-./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout
+`./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout`
 
 TODO : parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis
 

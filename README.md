@@ -14,3 +14,5 @@ Références :
 -  Spec. canonical xml : https://www.w3.org/TR/xml-c14n
 
 Séquence pour vérifier un document.odt :
+
+TODO : parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis

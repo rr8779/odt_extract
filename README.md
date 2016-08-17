@@ -8,6 +8,12 @@ Testé sous RHEL 6.3 64 bits / python 2.6.6 release 29.el6_2.2 (rpm par défaut)
 
 __Quelques exemples d'utilisations sur un fichier "test_signed.odt" :__
 
+_Options de la ligne de commande:_
+
+`./odt_extract.py --help`
+
+
+
 _Affichage du certificat de signature :_
 
 `./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout`

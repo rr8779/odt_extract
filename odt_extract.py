@@ -33,7 +33,7 @@ class ODTFile:
                 'ds':'http://www.w3.org/2000/09/xmldsig#'}
 
         self._MIME_FILE = 'mimetype'
-        self._MIMETYPE = u'application/vnd.oasis.opendocument.text'
+        self._MIMETYPE = 'application/vnd.oasis.opendocument.text'
         self._CONTENT_FILE = 'content.xml'
         self._DSIG_FILE = 'META-INF/documentsignatures.xml'
 
@@ -77,7 +77,9 @@ class ODTFile:
         # Contenu xml au format canonical xml (xml-c14n)
         temp_ET = ElementTree.ElementTree(self.xmlroot)
         temp_file_object = StringIO()
-        temp_ET.write_c14n(temp_file_object)
+        # Transformation en xml canonique : write_c14n(self, file, exclusive=False, with_comments=True, compression=0, inclusive_ns_prefixes=None)
+        # Canonical XML 1.0 (omits comments) : http://www.w3.org/TR/2001/REC-xml-c14n-20010315
+        temp_ET.write_c14n(temp_file_object, exclusive=False, with_comments=False)
         return temp_file_object.getvalue()
 
     def get_dsig_algo(self):

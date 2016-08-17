@@ -13,6 +13,10 @@ Références :
 - Spec. signature xml : https://www.w3.org/TR/2008/REC-xmldsig-core-20080610/
 -  Spec. canonical xml : https://www.w3.org/TR/xml-c14n
 
-Séquence pour vérifier un document.odt :
+Quelques exemples d'utilisations sur un fichier "test_signed.odt" :
+
+Affichage du certificat de signature :
+./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout
+
 
 TODO : parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis

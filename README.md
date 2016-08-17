@@ -13,4 +13,4 @@ Références :
 - Spec. signature xml : https://www.w3.org/TR/2008/REC-xmldsig-core-20080610/
 -  Spec. canonical xml : https://www.w3.org/TR/xml-c14n
 
-Exemple de séquence pour vérifier un document.odt :
+Séquence pour vérifier un document.odt :

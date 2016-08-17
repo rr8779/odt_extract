@@ -16,6 +16,7 @@ Références :
 Quelques exemples d'utilisations sur un fichier "test_signed.odt" :
 
 Affichage du certificat de signature :
+
 ./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout
 
 

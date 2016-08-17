@@ -12,13 +12,16 @@ _Options de la ligne de commande:_
 
 `./odt_extract.py --help`
 
-
-
 _Affichage du certificat de signature :_
 
 `./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER -text -noout`
 
-TODO : parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis
+TODO :
+- parsing d'un "formulaire" dans le document signé / pouvoir extraire des champs précis
+- Vérifier l'attribut <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+- Vérifier l'attribut <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+- Vérifier l'attribut <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+- Vérifier l'attribut <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
 
 Références :
 - Spec. odf : http://docs.oasis-open.org/office/v1.2/cs01/OpenDocument-v1.2-cs01.html

@@ -20,6 +20,10 @@ _Calcul de l'empreinte du contenu :_
 
 `./odt_extract.py --file test_signed.odt --content | openssl dgst -binary -sha1 | base64`
 
+_Affichage de l'empreinte du contenu signée dans le bloc "SignedInfo" :_
+
+`./odt_extract.py --file test_signed.odt --digest`
+
 _Calcul de l'empreinte du bloc signé "SignedInfo" :_
 
 `/odt_extract.py --file test_signed.odt --signedinfo | openssl dgst -binary -sha1 | base64`

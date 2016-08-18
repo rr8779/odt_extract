@@ -27,7 +27,9 @@ _Calcul de l'empreinte du bloc signé "SignedInfo" :_
 _Déchiffrement (avec la clé publique) de la signature du bloc "SignedInfo" :_
 
 `./odt_extract.py --file test_signed.odt --x509 | base64 --decode | openssl x509 -inform DER > cert.txt`
+
 `./odt_extract.py --file test_signed.odt --dsig | base64 --decode > signaturevalue.txt`
+
 `openssl rsautl -inkey cert.txt -certin -in signaturevalue.txt | base64`
 
 TODO :

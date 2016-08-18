@@ -18,7 +18,7 @@ from zipfile import ZipFile
 #from xml.etree import ElementTree
 import lxml.etree as ElementTree
 from StringIO import StringIO
-from sys import exit
+from sys import exit, stdout
 
 # Represente un fichier au format OASIS "ODF" Open Document Format
 class ODTFile:
@@ -83,7 +83,7 @@ class ODTFile:
         return temp_file_object.getvalue()
 
     def get_dsig_algo(self):
-        # Algorithme utilisée pour la signature électronique
+        # Algorithme utilisé pour la signature électronique
         dsig_algo = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
@@ -94,7 +94,7 @@ class ODTFile:
         return dsig_algo
 
     def get_dsig_digest(self):
-        # Empreinte (condensat) du contenu
+        # Empreinte (condensat) au format base64 du contenu
         dsig_digest = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
@@ -108,9 +108,21 @@ class ODTFile:
                 break
         return dsig_digest
 
+    def get_dsig_signedinfo(self):
+        # Bloc xml signé au format canonical xml (xml-c14n)
+        # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
+        # On ne prend en compte que le premier element <ds:Signature> trouvé
+        ds_element = self.dsigroot.find('{%s}Signature' % self._ODF_NS['ds'])
+        signedinfo_element = ds_element.find('{%s}SignedInfo' % self._ODF_NS['ds'])
+        temp_ET = ElementTree.ElementTree(signedinfo_element)
+        temp_file_object = StringIO()
+        # Transformation en xml canonique : write_c14n(self, file, exclusive=False, with_comments=True, compression=0, inclusive_ns_prefixes=None)
+        # Canonical XML 1.0 (omits comments) : http://www.w3.org/TR/2001/REC-xml-c14n-20010315
+        temp_ET.write_c14n(temp_file_object, exclusive=False, with_comments=False)
+        return temp_file_object.getvalue()
+
     def get_dsig_value(self):
-        # Signature (empreinte du contenu signé avec la clé privée du certificat)
-        # Le résultat est en base64
+        # Signature au format base64 du bloc xml signé avec la clé privée du certificat
         dsig_value = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
@@ -119,14 +131,8 @@ class ODTFile:
         dsig_value = signaturevalue_element.text
         return dsig_value
 
-    def get_dsig_issuer(self):
-        # Emetteur du certificat de signature
-        dsig_issuer = ''
-        return dsig_issuer
-
     def get_dsig_x509(self):
         # Le certificat de signature utilisé
-        # Le résultat est en base64
         dsig_x509 = ''
         # Voir les specifications OASIS correspondantes et les specs W3C xmldsig-core
         # On ne prend en compte que le premier element <ds:Signature> trouvé
@@ -140,12 +146,13 @@ class ODTFile:
     def get_dsig_date(self):
         # Date de la signature
         dsig_date = ''
+        # TODO
         return dsig_date
 
     def __repr__(self):
         # Permet d'afficher les elements de l'arbre xml
         repr = ''
-        if self.xmlroot:
+        if self.xmlroot is not None:
             # xml.etree.ElementTree.Element.itertext() n'est pas dispo avant python 2.7
             for element in self.xmlroot.getiterator():
                 repr += 'Tag: %s\n' % element.tag
@@ -161,11 +168,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Permet d\'extraire le texte brut et la signature électronique d\'un fichier odt (opendocument text file)')
     parser.add_argument('--file', required=True, help='Fichier à traiter')
     parser.add_argument('--text', action='store_true', help='Affichage du texte brut du contenu')
-    parser.add_argument('--content', action='store_true', help='Affichage du contenu xml au format canonical xml (xml-c14n)')
-    parser.add_argument('--digest', action='store_true', help='Affichage de l\'empreinte (condensat) du contenu')
-    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature (empreinte signée) au format base64')
-    parser.add_argument('--issuer', action='store_true', help='Affichage de l\'emetteur du certificat')
-    parser.add_argument('--x509', action='store_true', help='Affichage du certificat de signature utilisé au format base64')
+    parser.add_argument('--content', action='store_true', help='Affichage du contenu xml [format canonical xml (xml-c14n)]')
+    parser.add_argument('--digest', action='store_true', help='Affichage de l\'empreinte (condensat) du contenu [format base64]')
+    parser.add_argument('--signedinfo', action='store_true', help='Affichage du bloc xml signé [format canonical xml (xml-c14n)]')
+    parser.add_argument('--dsig', action='store_true', help='Affichage de la signature du bloc xml signé [format base64]')
+    parser.add_argument('--x509', action='store_true', help='Affichage du certificat de signature utilisé [format base64]')
     parser.add_argument('--date', action='store_true', help='Affichage de la date de signature du contenu')
     parser.add_argument('--verbose', action='store_true', help='Affichage des étapes successives')
     args = parser.parse_args()
@@ -179,15 +186,19 @@ if __name__ == '__main__':
     else:
         if args.verbose: print 'Contenu xml au format ODF version %s' % odtfile.get_odf_version()
         if args.text: print odtfile.get_raw_text()
-        if args.content: print odtfile.get_content()
+        # On n'utilise pas "print" car il rajoute un retour à la ligne ce qui produit un mauvais calcul d'empreinte via openssl !!
+        # | openssl dgst -binary -sha1
+        if args.content: stdout.write(odtfile.get_content())
         if odtfile.dsigroot is None:
             print 'Erreur de lecture de la signature électronique'
             code_retour = 1
         else:
             if args.verbose: print 'Algorithme de la signature électronique %s' % odtfile.get_dsig_algo()
             if args.digest: print odtfile.get_dsig_digest()
+            # On n'utilise pas "print" car il rajoute un retour à la ligne ce qui produit un mauvais calcul d'empreinte via openssl !!
+            # | openssl dgst -binary -sha1
+            if args.signedinfo: stdout.write(odtfile.get_dsig_signedinfo())
             if args.dsig: print odtfile.get_dsig_value()
-            if args.issuer: print odtfile.get_dsig_issuer()
             if args.x509: print odtfile.get_dsig_x509()
             if args.date: print odtfile.get_dsig_date()
 
